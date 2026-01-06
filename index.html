@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Fraud Detection Quiz</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh; background: linear-gradient(-45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+            background-size: 400% 400%; animation: gradientShift 15s ease infinite; color: #333;
+            overflow-x: hidden; padding: 15px; line-height: 1.6;
+        }
+        @keyframes gradientShift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+        
+        .container { max-width: 750px; margin: 0 auto; min-height: 100vh; }
+        
+        .header { text-align: center; color: white; padding: 25px 0; margin-bottom: 25px; }
+        .header h1 { font-size: clamp(1.8em, 5vw, 2.8em); text-shadow: 3px 3px 6px rgba(0,0,0,0.4); margin-bottom: 10px; }
+        
+        .timer-container {
+            background: rgba(0, 0, 0, 0.2); color: white; padding: 10px 20px;
+            border-radius: 50px; display: inline-block; margin-bottom: 20px;
+            font-weight: bold; font-size: 1.2em; border: 2px solid rgba(255,255,255,0.4);
+        }
+        .timer-warning { color: #ff6b6b; background: white; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.7; } }
+
+        .question-container { 
+            background: rgba(255,255,255,0.97); border-radius: 25px; padding: 40px 35px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3); margin-bottom: 30px;
+        }
+        
+        .question-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; padding: 18px 25px; background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            color: white; border-radius: 18px;
+        }
+        
+        .question-number { font-size: 1.1em; font-weight: bold; background: rgba(255,255,255,0.25); padding: 5px 15px; border-radius: 20px; }
+        
+        .question-text { 
+            font-size: clamp(1.1em, 3.5vw, 1.3em); font-weight: 600; color: #2c3e50; 
+            margin-bottom: 30px; line-height: 1.5; 
+        }
+        
+        .options { display: flex; flex-direction: column; gap: 15px; }
+        
+        .option { 
+            padding: 20px 25px; border: 3px solid transparent; border-radius: 20px;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef); cursor: pointer;
+            transition: all 0.2s ease; font-size: 1.1em; font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        
+        .option:hover { transform: translateY(-3px); border-color: #4ecdc4; }
+        .option.correct-choice { background: linear-gradient(135deg, #28a745, #20c997) !important; color: white; }
+        .option.wrong-choice { background: linear-gradient(135deg, #dc3545, #ff6b6b) !important; color: white; }
+        
+        .feedback { 
+            margin-top: 25px; padding: 25px; border-radius: 20px; font-size: 1em;
+            line-height: 1.6; box-shadow: 0 15px 40px rgba(0,0,0,0.15); border-left: 6px solid;
+        }
+        .feedback.correct { background: #d4edda; color: #155724; border-left-color: #28a745; }
+        .feedback.incorrect { background: #f8d7da; color: #721c24; border-left-color: #dc3545; }
+
+        .btn { 
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1); color: white; border: none;
+            padding: 20px; font-size: 1.2em; font-weight: 700; border-radius: 50px;
+            cursor: pointer; transition: all 0.2s ease; width: 100%; margin-top: 20px;
+        }
+        .btn:disabled { background: #6c757d; cursor: not-allowed; opacity: 0.6; }
+
+        .score { font-size: 4em; font-weight: 900; margin: 10px 0; color: #4ecdc4; text-align: center;}
+        .congrats-message { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 30px; border-radius: 25px; margin: 20px 0; text-align: center; font-size: 1.1em; }
+        .golden-rule { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #212529; padding: 25px; border-radius: 20px; font-weight: 700; margin: 20px 0; text-align: center; }
+        
+        /* UPDATED HELPLINE COLOR TO BLACK */
+        .helpline-footer { 
+            text-align: center; 
+            color: #000000; 
+            font-weight: 800; 
+            margin-top: 25px; 
+            font-size: 1.25em;
+            line-height: 1.4;
+            letter-spacing: 0.2px;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🛡️ Fraud Detection Quiz</h1>
+        <center>
+            <div id="timerDisplay" class="timer-container hidden">Time Left: 05:00</div>
+        </center>
+    </div>
+    <div id="quizArea" class="question-container"></div>
+    <div id="resultArea" class="question-container hidden"></div>
+</div>
+
+<script>
+    const quizData = {
+        set1: [
+            {q:"You receive a WhatsApp message from a profile named 'HDFC Bank Support' at 2:47 AM. It claims your account is suspended due to suspicious activity and provides a link to 'verify your identity' within 30 minutes to avoid a permanent block. What do you do?",o:["Click link","Call number","Check official app","Share OTP"],c:2,e_correct:"✅ CORRECT: Banks never use WhatsApp for urgent links.",e_wrong:"❌ WRONG: Urgent links steal credentials.",why_correct:"Official banking apps are the only secure channel. A bank will never communicate through unofficial chat apps for critical account issues.",why_wrong:"Scammers use late-night messages and extreme urgency to panic you into clicking. Once you click, your login data is captured instantly by their fake page."},
+            {q:"You get a video call from someone in a police uniform claiming to be from the Cyber Cell. They say your Aadhaar is linked to a ₹50 Crore money laundering case and you are under 'Digital Arrest.' They demand ₹3 Lakh as 'refundable bail' via UPI to clear your name immediately. Your response?",o:["Pay now","Visit local station","Send KYC","Click portal"],c:1,e_correct:"✅ CORRECT: Real police never arrest via video call.",e_wrong:"❌ WRONG: Digital Arrest is a total fabrication.",why_correct:"Law enforcement agencies always require physical presence at a station for legal matters. They never settle criminal investigations or bail through UPI transfers.",why_wrong:"This is a 'Digital Arrest' scam. Fraudsters wear fake uniforms and use high-pressure fear tactics to keep you on a video call until you transfer all your savings."},
+            {q:"An SMS arrives stating your 'PhonePe refund of ₹4,999 has failed.' It instructs you to 'Reply YES' to this message so the system can automatically retry the refund process directly to your linked bank account. How do you react?",o:["Reply YES","Check in-app","Share PIN","Call sender"],c:1,e_correct:"✅ CORRECT: Refunds never require an SMS reply.",e_wrong:"❌ WRONG: YES replies confirm you are a live target.",why_correct:"Payment apps process refunds automatically back to the original source. You should only check your status within the official, secured app interface.",why_wrong:"Replying 'YES' to a random number confirms your phone is active and vulnerable. It can also be used as authorization for fraudulent charges on your mobile bill."},
+            {q:"You find an investment platform called 'Quantum Wealth' promising 5% DAILY returns on your capital. They claim their AI-trading bot is 'guaranteed' to never lose money, and they show screenshots of users turning ₹10,000 into ₹50,000 in just 10 days. Should you invest?",o:["Invest small","It's a Ponzi","Ask friends","Try ₹5K"],c:1,e_correct:"✅ CORRECT: No legit business can guarantee 5% daily.",e_wrong:"❌ WRONG: High guaranteed returns are classic traps.",why_correct:"If a business could generate 5% daily, they wouldn't need your ₹10K. This is a Ponzi scheme where early investors are paid using the money of new members.",why_wrong:"The 'Too Good To Be True' rule is your best defense. They often show fake profit dashboards to lure you into 'investing' life-changing amounts before they disappear."},
+            {q:"Your phone rings and you hear your 'Cousin' crying hysterically. They claim they are stuck at the airport, their wallet was stolen, and they need ₹25,000 via UPI immediately to buy a last-minute flight home before the gates close in 10 minutes. What is the safest action?",o:["Send money","Verify contact","Ask details","Call airport"],c:1,e_correct:"✅ CORRECT: AI voice clones can mimic anyone perfectly.",e_wrong:"❌ WRONG: Never send money based on a voice alone.",why_correct:"Always hang up and call the person back on their known, saved phone number. Using a pre-set 'secret code' with family for emergencies is also a great safety measure.",why_wrong:"AI voice cloning technology can now replicate a person's voice using just a 3-second sample from social media. Scammers use this 'emergency' to stop you from thinking clearly."},
+            {q:"A delivery agent arrives with a parcel you didn't order. He says there is a 'system error' and he can't complete the return unless you provide the 6-digit OTP that was just sent to your phone. He seems very helpful and in a hurry. Do you give it?",o:["Share OTP","Check app/Wait","Give old OTP","Call office"],c:1,e_correct:"✅ CORRECT: You never need an OTP to RECEIVE a parcel.",e_wrong:"❌ WRONG: OTPs are for logins, not delivery proof.",why_correct:"OTPs are generally used to verify identity for payments or logins. A delivery agent only needs you to sign or provide a 'delivery code' provided inside the official app.",why_wrong:"By asking for an OTP, the scammer is likely trying to reset your Amazon, Flipkart, or bank password in the background. Giving it grants them full account access."},
+            {q:"You join a Telegram channel called 'IPL Fixed Matches VIP.' The admin posts daily screenshots of winning bets and offers a '100% Guaranteed Winner' for tonight's match if you pay a ₹500 membership fee via UPI. What's the truth here?",o:["Join VIP","Report/Block","Try once","Ask proof"],c:1,e_correct:"✅ CORRECT: Match fixing info is not sold on Telegram.",e_wrong:"❌ WRONG: These channels are purely for stealing fees.",why_correct:"These channels use edited screenshots and 'deleted' losing posts to make it look like they are always right. Real match-fixing is illegal and would never be sold for ₹500.",why_wrong:"Once you pay the fee, they will either block you immediately or ask for a 'commission' on the fake winnings they claim you will get. You will never see your money again."},
+            {q:"You receive an urgent SMS from 'IRCTC' stating your upcoming train PNR has been cancelled due to a technical glitch. It provides a link: 'irctc-rebook-now.co.in' to rebook your seat immediately at no extra cost before the quota fills up. What do you do?",o:["Click link","Check official site","Call SMS","Reply HELP"],c:1,e_correct:"✅ CORRECT: IRCTC never sends clickable links via SMS.",e_wrong:"❌ WRONG: Fake URLs steal your bank data.",why_correct:"Manual login on the official irctc.co.in website is the only way to manage bookings. Check the URL carefully—scammers use slight typos to trick you.",why_wrong:"Fake domains look nearly identical to the real ones but are designed to capture your IRCTC credentials and bank details when you try to 'pay' for the new ticket."},
+            {q:"A verified celebrity with millions of followers DMs you on Instagram. They claim to be running a promotion and will pay you ₹1 Lakh if you spend 5 minutes reviewing a new app they've developed. They send you a link to download the 'Beta' file. How do you respond?",o:["Do review","Block/Scam","Send email","Ask for ID"],c:1,e_correct:"✅ CORRECT: Celebs don't DM random people for jobs.",e_wrong:"❌ WRONG: Celeb accounts are often compromised.",why_correct:"Official celebrity promotions are handled through agencies and legal contracts. They would never reach out to a random follower via DM to offer high-paying tasks.",why_wrong:"Scammers often hack verified accounts to gain instant trust. They will ask you to download a 'review file' that is actually malware, or ask for a 'processing fee' to get paid."},
+            {q:"An SMS warns you that your Aadhaar is not linked to your bank account and it will be frozen within 24 hours per government mandate. It includes a link to a 'Self-Service Portal' where you can enter your Aadhaar and Bank details to fix it. Your move?",o:["Urgent - click","UIDAI doesn't link","Use bank app","Ignore"],c:2,e_correct:"✅ CORRECT: Use your bank's official app only.",e_wrong:"❌ WRONG: UIDAI never sends clickable links for banks.",why_correct:"Banking apps provide a secure, encrypted tunnel for KYC updates. If an update is actually required, the bank will notify you through their official app or mail.",why_wrong:"Aadhaar phishing is used to collect your identity details and biometric info. Clicking the link and entering your details allows scammers to open fake accounts in your name."},
+        ],
+        set2: [
+            {q:"You are selling a sofa on OLX. A potential buyer messages saying they are 'very interested' and will pay the full amount as an advance. They send a QR code and tell you: 'Just scan this and enter your PIN to receive the money in your account.' Do you scan?",o:["Scan to get","QR pays only","Ask bank","Check QR"],c:1,e_correct:"✅ CORRECT: Scanning a QR always DEDUCTS money.",e_wrong:"❌ WRONG: QR codes never 'receive' money.",why_correct:"According to RBI rules, you never need to enter your PIN or scan a QR code to receive money. If someone asks you to 'scan to receive', they are lying to you.",why_wrong:"The scammer hopes you believe that the QR code is a way to verify your account. The moment you scan and enter your PIN, the money is pulled FROM your account immediately."},
+            {q:"You see a sponsored Facebook Ad: 'Work from home! Earn ₹5,000 per day simply by liking YouTube videos and submitting screenshots. No experience required, open to all.' It sounds like the perfect side hustle. Should you apply?",o:["Start today","Task Scam","Apply now","Pay fee"],c:1,e_correct:"✅ CORRECT: High pay for low work is a 'Task Scam'.",e_wrong:"❌ WRONG: These lead to 'investment' traps.",why_correct:"No legitimate company pays massive amounts for a simple 'like'. This is a psychological trap designed to make you feel like you've found an easy income stream.",why_wrong:"These scams start by paying you ₹100 to build trust. Later, they force you to 'invest' your own money to unlock bigger tasks, then they block you and steal the deposit."},
+            {q:"An SMS from a 10-digit mobile number claims: 'Dear Customer, your electricity power will be disconnected at 9:00 PM tonight because your previous month's bill update is pending. Please call our officer at 9876543210 immediately.' What is your action?",o:["Call now","Pay link","Check official app","Call 100"],c:2,e_correct:"✅ CORRECT: Official boards never use private numbers.",e_wrong:"❌ WRONG: Calling leads to a remote access trap.",why_correct:"Use only official DISCOM portals or BBPS apps like GPay/PhonePe to check your bill status. Electricity boards never threaten instant disconnection via SMS.",why_wrong:"If you call that number, they will trick you into downloading a screen-sharing app like AnyDesk. Once installed, they can see your banking PIN as you type it."},
+            {q:"You receive a message: 'Your YONO SBI KYC has expired. Your account will be blocked by tomorrow. Please click here to login and update your documents: sbi-kyc-verify.com.' It looks like the real SBI login page. Do you use the link?",o:["Click link","Visit SBI","Send SMS","Share ID"],c:1,e_correct:"✅ CORRECT: Banks never put login links in SMS.",e_wrong:"❌ WRONG: Phishing links capture your credentials.",why_correct:"Banks send informative messages, but they will never provide a direct link to a login page. Always type the bank URL manually in your browser or use the official app.",why_wrong:"The link leads to a 'mirror' website that looks 100% like the real SBI page. When you enter your username and OTP, the scammer uses them to drain your account in seconds."},
+            {q:"You can't find your Swiggy order and search for 'Swiggy Customer Care' on Google. The first result is a mobile number. You call it, and the 'agent' says you need to download a 'Refund Tracking App' to get your money back. What do you do?",o:["Install it","Safe fix","Scam - block","Share order"],c:2,e_correct:"✅ CORRECT: Google search 'customer care' is often fake.",e_wrong:"❌ WRONG: Refund apps are actually remote-control apps.",why_correct:"Scammers pay for Google Ads to appear at the top of search results with fake help numbers. Only use the support chat found inside the official Swiggy or Zomato app.",why_wrong:"A 'Refund App' is just a trick to get you to install a remote desktop tool. This gives the criminal total control over your phone, including access to your SMS for OTPs."},
+            {q:"A pop-up on a website says: 'Congratulations! You are the 1,000,000th visitor and have won a free iPhone 15 Pro. To claim your prize, simply pay a small ₹499 processing and shipping fee.' It asks for your credit card details. Is this legitimate?",o:["Pay shipping","Great deal","It's a trap","Ask COD"],c:2,e_correct:"✅ CORRECT: They want your card CVV, not ₹499.",e_wrong:"❌ WRONG: 'Free' items that cost money are scams.",why_correct:"No stranger is giving away a ₹1 Lakh phone for a ₹500 shipping fee. This is a classic 'Carding' bait used to steal your credit card details for massive online purchases.",why_wrong:"The 'Payment Page' is a fake site. Even if you only pay ₹499, they now have your card number, expiry, and CVV, allowing them to make unauthorized transactions later."},
+            {q:"A 'Technical Support' agent calls saying your computer is sending out virus alerts. He asks you to download 'AnyDesk' or 'TeamViewer' so he can remotely log in and fix the issue for free as a courtesy. Should you allow this?",o:["Fix it","Only for banks","Scam - block","Share ID"],c:2,e_correct:"✅ CORRECT: AnyDesk gives them full phone control.",e_wrong:"❌ WRONG: They can see your OTPs live.",why_correct:"Screen-sharing apps are for technical support with people you know and trust. Sharing your screen with a stranger is like giving them the keys to your entire digital life.",why_wrong:"Once connected, the scammer will ask you to open your bank app to 'verify' something. They will record your PIN and see every OTP that arrives via SMS to steal your funds."},
+            {q:"While waiting at the airport, you see a 'Free High-Speed Public Wi-Fi' network. You decide to use it to transfer ₹50,000 to your landlord since your bill is due today. Is it safe to perform this transaction on a public network?",o:["Yes, it's fast","Use VPN","Unsafe/Avoid","Safe for apps"],c:2,e_correct:"✅ CORRECT: Public Wi-Fi is easy to intercept.",e_wrong:"❌ WRONG: Hackers use 'Sniffing' on public networks.",why_correct:"Public networks are often unencrypted and can be cloned by hackers nearby. Always use your mobile data or a trusted VPN for any financial transactions while traveling.",why_wrong:"A 'Man-in-the-Middle' attack allows a hacker on the same Wi-Fi to 'see' the data traveling between your phone and the bank server, potentially stealing your login tokens."},
+            {q:"You get a WhatsApp message with an audio clip of Amitabh Bachchan's voice. It says you've won a ₹25 Lakh KBC Lottery and must call 'Manager Rana Pratap Singh' on a provided WhatsApp number to claim it. How should you handle this?",o:["Call now","Send tax","Block Scam","Ask proof"],c:2,e_correct:"✅ CORRECT: KBC never calls on WhatsApp.",e_wrong:"❌ WRONG: You can't win a lottery you didn't enter.",why_correct:"Legitimate lotteries and game shows don't use WhatsApp voice notes or random profile pictures of celebrities. This is a targeted scam to exploit your hope for easy money.",why_wrong:"If you call, they will demand a 'File Charge' or 'GST' to release the winnings. Once you pay the first small fee, they will keep inventing new reasons for you to send more money."},
+            {q:"Suddenly, your phone loses all network signal in a busy city area. An hour later, you check your email on a computer and see three bank alerts for ₹1 Lakh each. Your signal is still dead. What has likely happened to you?",o:["Network bug","Sim Swap","Bank error","Phone hack"],c:1,e_correct:"✅ CORRECT: They cloned your SIM to get OTPs.",e_wrong:"❌ WRONG: A dead signal + bank SMS is a Sim Swap.",why_correct:"This is a SIM Swap fraud. Scammers trick the operator into deactivating your SIM and issuing a new one to them, giving them control over all your incoming SMS OTPs.",why_wrong:"If your phone suddenly loses network in a high-signal area, immediately contact your service provider from another phone to check if a new SIM has been issued illegally."},
+        ],
+        set3: [
+            {q:"A person you met on a matrimonial site for 2 weeks says they've sent you an expensive diamond set from the UK as a surprise. Later, 'Customs' calls saying the gift is stuck and you must pay a ₹50,000 'Clearance Fee' via UPI to a private name. Do you pay?",o:["Pay fee","Ask receipt","Romance Scam","Call DHL"],c:2,e_correct:"✅ CORRECT: Scammers build fake relationships to steal cash.",e_wrong:"❌ WRONG: Customs doesn't collect cash via UPI.",why_correct:"This is a 'Romance Scam'. Fraudsters build trust over weeks then invent an emergency. Real customs officers never call individuals to ask for UPI payments to private accounts.",why_wrong:"The 'gift' is entirely imaginary. Once you pay the 'customs fee', the scammer will claim there is a 'laundering fine' to steal even more money before disappearing forever."},
+            {q:"An online 'job' pays you ₹150 for liking 3 Google Maps places. After you get the money, they add you to a group and say: 'To unlock VIP tasks that pay ₹5,000 per day, you must first deposit a ₹5,000 security fee.' Should you proceed?",o:["Invest now","Ponzi Scam","Ask task","Try ₹1K"],c:1,e_correct:"✅ CORRECT: Payouts are small bait for a large trap.",e_wrong:"❌ WRONG: You will never get the deposit back.",why_correct:"Small early payments are used to lower your guard. Legitimate freelance work never requires you to pay a 'membership fee' or 'deposit' to receive your earned salary.",why_wrong:"The moment you deposit the ₹5000, the scammers will show a fake balance on their website. However, they will block your withdrawal until you 'invest' even more money."},
+            {q:"You get a WhatsApp message from 'Income Tax Dept' with a file named 'Income_Tax_Refund_Form_2024.apk'. It says you are eligible for a ₹15,000 refund and must install this app to verify your bank account. Do you open it?",o:["Open PDF","It's Malware","Safe file","Check size"],c:1,e_correct:"✅ CORRECT: .apk files are Android apps, not documents.",e_wrong:"❌ WRONG: This app steals your SMS/Bank data.",why_correct:"The government never sends apps to citizens via WhatsApp. Files ending in .apk are applications that can execute code, spy on your camera, and read your SMS messages.",why_wrong:"Opening this file installs a 'Trojan' on your phone. It runs silently in the background, intercepting your banking OTPs and sending them to the hacker's remote server."},
+            {q:"A caller claiming to be from 'Microsoft Technical Support' tells you your Windows license has expired. He asks you to 'Screen Share' your desktop using a tool he provides so he can 'manually activate' it for you. Is this safe?",o:["Fix it","Safe fix","Scam - block","Share ID"],c:2,e_correct:"✅ CORRECT: Screen sharing exposes your PINs/OTPs.",e_wrong:"❌ WRONG: Screen sharing is the #1 way money is stolen.",why_correct:"No customer support agent from a bank or tech company will ever ask to see your phone screen. They have internal tools to check account status without needing your view.",why_wrong:"Even if the bug is real, sharing your screen allows the 'agent' to see you type your passwords and see the contents of your private messages and gallery."},
+            {q:"An 'Insurance Agent' calls with your policy number correctly. He says your LIC bonus of ₹5 Lakh is ready but will expire in 2 days. He asks for a ₹10,000 'Processing Fee' to be paid via GPay to 'expedite the release.' Your response?",o:["Pay & get","Call agent","Scam - ignore","Check site"],c:2,e_correct:"✅ CORRECT: Insurance bonuses are never paid for in advance.",e_wrong:"❌ WRONG: LIC never uses UPI for fee collections.",why_correct:"Policy bonuses are automatically added to your account or paid through official bank transfers. Legitimate insurance companies never ask for a 'fee' to release your own money.",why_wrong:"Fraudsters use your leaked policy data to sound convincing. They often pose as senior IRDAI officials to pressure you into paying 'processing fees' that don't exist."},
+            {q:"You get an SMS: 'Meta Alert: Your Instagram account will be deleted for violating copyright. To keep your Blue Tick and verify your identity for ₹500, click here now.' It leads to a 'meta-verification-portal.com'. Should you click?",o:["Cheap Deal","Official Meta","Phishing Trap","Pay UPI"],c:2,e_correct:"✅ CORRECT: Blue ticks are sold only via the official Meta app.",e_wrong:"❌ WRONG: This link steals your Instagram login.",why_correct:"Verification badges are subscription services managed entirely within the Meta account center. They never send random SMS links offering 'cheap' one-time verification.",why_wrong:"The link takes you to a fake login page designed to steal your username and password. Once you 'log in', the hacker takes over your account and locks you out forever."},
+            {q:"You need money fast and find an app that promises: 'Instant ₹5 Lakh Loan - No Salary Slip, No CIBIL Score required. Just download LoanFast and provide contact access.' Should you download and apply for the loan?",o:["Take it","Check Rate","Blackmail App","Use Bank"],c:2,e_correct:"✅ CORRECT: Illegal loan apps steal your contact list.",e_wrong:"❌ WRONG: They use your photos for blackmail later.",why_correct:"Illegal loan apps require permissions for your contacts and gallery. They use this data to harass your friends and family if you are even one day late on a payment.",why_wrong:"These apps charge predatory interest rates (often 200%+) and use your private photos to create morphed images for blackmail. Only use RBI-regulated bank apps for loans."},
+            {q:"You get a video call from your 'Boss'. The video is a bit blurry but the voice is perfect. He says he's in a meeting and needs you to buy 10 Amazon Gift Cards of ₹5,000 each for a client and send the codes right now. What is happening?",o:["Buy card","Verify Slack","Call Boss","Wait 1hr"],c:2,e_correct:"✅ CORRECT: AI Deepfakes can mimic faces/voices live.",e_wrong:"❌ WRONG: Gift cards are the favorite currency of thieves.",why_correct:"Always verify 'urgent' financial requests by calling the person back on a different platform. No professional boss will ask an employee to buy gift cards with their own money.",why_wrong:"Deepfake technology allows scammers to put a digital mask over their face and use an AI voice in real-time. Gift cards are used because they are untraceable once the code is shared."},
+            {q:"You see a Facebook ad for a 'Premium 3BHK Flat' in a prime city area at 50% below market price. The owner says he's moving abroad and needs a 1% 'Booking Token' via UPI before he can even show you the house because so many people are calling. What's your move?",o:["Book now","Token risk","Check RERA","Pay Credit"],c:2,e_correct:"✅ CORRECT: Never pay a token before seeing a house.",e_wrong:"❌ WRONG: Scammers use photos of other people's homes.",why_correct:"Verify every property on the official RERA website before paying anything. Scammers often post fake ads using photos from luxury hotel websites or high-end listings.",why_wrong:"The 'owner' will claim they are out of town and need a 'small token' to confirm your serious interest. Once you UPI the money, the ad is deleted and the number is blocked."},
+            {q:"A caller from 'FedEx' says a parcel in your name was seized by the NCB because it contained illegal drugs. He says to 'Press 1' to speak to an officer. The 'officer' then tells you to stay on a video call and pay a fine to avoid jail. Is this real?",o:["Pay & save","Official way","Fear Scam","Call Lawyer"],c:2,e_correct:"✅ CORRECT: Agencies don't settle drug cases via UPI.",e_wrong:"❌ WRONG: This is the 'Digital Arrest' fear tactic.",why_correct:"If a parcel really contained illegal items, the police would arrive at your door, not call you on WhatsApp. They do not accept 'fines' via UPI to avoid legal action.",why_wrong:"This is a psychological attack. They use legal jargon and high-pressure threats to stop you from calling a lawyer or your family. They want you to pay to 'end the nightmare'."},
+        ],
+        set4: [
+            {q:"You see a LinkedIn post for a 'Remote Data Entry' job paying ₹30,000 a week. After the interview, they say you are hired but must pay a ₹2,000 'Security Deposit' for the software they will send you. Is this a legitimate job offer?",o:["Pay deposit","Check LinkedIn","Scam - Ignore","Ask for ID"],c:2,e_correct:"✅ CORRECT: Real jobs never ask for money to hire you.",e_wrong:"❌ WRONG: Hiring deposits are always scams.",why_correct:"Legitimate employers pay you for your work; they never ask you to pay them first. Any request for a 'laptop fee', 'security deposit', or 'training kit' is a guaranteed scam.",why_wrong:"Once you pay the deposit, the scammer will vanish or claim the 'first task' had errors and demand a 'penalty fee' to release your earnings. You will never earn a single rupee."},
+            {q:"You are invited to a WhatsApp group where 'Admins' share screenshots of their 1000% profits in the stock market. They say if you download their 'Global Trading App' and invest ₹50,000, they will manage your money for a 10% fee. Your action?",o:["Join group","Invest 1k","Scam - Block","Follow tips"],c:2,e_correct:"✅ CORRECT: SEBI registered advisors don't use hidden groups.",e_wrong:"❌ WRONG: These groups use fake screenshots to lure you.",why_correct:"Investment fraud often starts in WhatsApp/Telegram groups where 'admins' post fake profit screenshots. Real trading should only be done through SEBI-registered brokers.",why_wrong:"They will manipulate you into downloading a fake trading app that shows huge 'virtual' profits. When you try to withdraw your real money, they will block your account."},
+            {q:"You receive an automated call: 'This is DHL. We found illegal items in your parcel. Your Aadhaar will be blacklisted. Press 1 to speak to our legal department.' You haven't sent any parcels recently. How do you handle this?",o:["Press 1","Hang up","Check DHL site","Call Police"],c:1,e_correct:"✅ CORRECT: This is a setup for a Digital Arrest scam.",e_wrong:"❌ WRONG: Automated 'illegal item' calls are fake.",why_correct:"Customs and logistics companies use official emails and physical letters for legal issues. They never use automated IVR calls to discuss criminal charges or drug discovery.",why_wrong:"Pressing '1' connects you to a scammer posing as an officer. They will keep you on the phone for hours, using fear to trick you into a 'digital arrest' and money transfer."},
+            {q:"A Facebook friend you haven't spoken to in years DMs you: 'Hey! I'm on vacation in Europe and my wallet was stolen. Can you UPI ₹10,000 to this local ID? I'll pay you back as soon as I'm home.' What should be your first step?",o:["Send money","Call friend","Check status","Ask name"],c:1,e_correct:"✅ CORRECT: Accounts get hacked; voices get cloned.",e_wrong:"❌ WRONG: Always verify via a phone call first.",why_correct:"Social media accounts are frequently compromised. Always call the friend on their saved number or ask a 'personal' question only they would know to verify their identity.",why_wrong:"Sending money to a UPI ID provided in a chat is extremely risky. The account usually belongs to a 'money mule' and the funds are withdrawn or moved within minutes."},
+            {q:"You download a 'Battery Saver Ultra' app from the Play Store. Upon opening, it asks for 'Full Permission to read and send SMS' and 'Access to Call Logs' to optimize your phone's battery life. Is it safe to grant these permissions?",o:["Allow","Deny/Delete","Only while using","Ask Support"],c:1,e_correct:"✅ CORRECT: Battery apps don't need to read your SMS.",e_wrong:"❌ WRONG: This is how they steal your Bank OTPs.",why_correct:"Apps that request permissions unrelated to their function are likely malware. A battery saver only needs access to system settings, never your private text messages.",why_wrong:"By allowing SMS access, the app can read your banking OTPs in the background. It then forwards these codes to the hacker, allowing them to bypass your two-factor security."},
+            {q:"You find a website offering a 'Last Minute Deal' for a 5-star hotel in Goa at just ₹2,000 per night. The site looks professional but you've never heard of it before. It asks for your credit card to 'confirm the booking.' Do you book?",o:["Book now","Check reviews","It's a trap","Use Credit"],c:2,e_correct:"✅ CORRECT: Unrealistically low prices are bait.",e_wrong:"❌ WRONG: Fake booking sites steal card details.",why_correct:"If a deal seems too good to be true, it is. Always check the domain age and use established platforms like Booking.com or Agoda rather than unknown, 'new' websites.",why_wrong:"These 'phishing' sites are designed to look like luxury travel agencies. They don't just steal your ₹2000; they capture your full credit card info to use for future fraud."},
+            {q:"You receive an SMS: 'Your BSES Electricity bill of ₹4,500 is overdue. Download this billing app (BillPay.apk) to pay instantly and avoid immediate power cut tonight at 8 PM.' The link is provided. How do you respond?",o:["Click link","Pay on app","Call helpline","Ignore"],c:1,e_correct:"✅ CORRECT: Never download APKs for bill payments.",e_wrong:"❌ WRONG: APKs contain malware to control phones.",why_correct:"Official utilities never distribute software updates via SMS links. Always use the official Play Store or App Store to download the utility company's verified application.",why_wrong:"The APK file is a 'Remote Access Trojan'. Once installed, the hacker can mirror your screen, control your apps, and even intercept your calls to prevent you from getting help."},
+            {q:"An Instagram account with a 'Crypto Expert' bio says: 'Give me $100 in Bitcoin and I will use my secret algorithm to give you $200 back within 24 hours. Check my stories for proof!' Many users are tagging him as 'Legit.' Do you try it?",o:["DM now","Report Scam","Try $10","Check Bio"],c:1,e_correct:"✅ CORRECT: Guaranteed 'doubling' is a 100% scam.",e_wrong:"❌ WRONG: There is no legit crypto doubling tech.",why_correct:"Cryptocurrency markets are volatile; no one can guarantee any return, let alone 100% in a day. These 'influencers' are actually scammers running a digital shell game.",why_wrong:"They will show you a fake dashboard where your $10 becomes $20. But when you 'invest' $1000, they will claim you need to pay a 'withdrawal tax' and eventually block you."},
+            {q:"You see a sponsored post on Facebook: 'Government PM-Kisan Scheme: All citizens are eligible for ₹5,000 monthly benefit. Register now with your mobile and enter the OTP received.' It looks very official with the national emblem. Do you register?",o:["Enter OTP","Check Gov site","Apply fast","Call friend"],c:1,e_correct:"✅ CORRECT: Gov schemes don't use FB OTP links.",e_wrong:"❌ WRONG: This OTP is for your personal accounts.",why_correct:"Official government schemes are registered through (.gov.in) portals or CSC centers. They never use social media ads to collect OTPs for direct cash benefits.",why_wrong:"The OTP you receive is usually for your own WhatsApp or Google account. By giving it to the 'scheme site', you are handing over full control of your personal accounts to hackers."},
+            {q:"A person calling from 'SBI Credit Card Division' says you are eligible for a free limit upgrade from ₹1 Lakh to ₹5 Lakh. They send a link to 'verify your card status' so the upgrade can be applied instantly. Your reaction?",o:["Click link","Visit bank","Share details","Ask limit"],c:1,e_correct:"✅ CORRECT: Bank upgrades happen in-app or at branches.",e_wrong:"❌ WRONG: Links lead to phishing pages.",why_correct:"Banks never send clickable links to increase limits or change PINs. These upgrades are either automatic based on your history or must be done inside their secure app.",why_wrong:"The link leads to a page that asks for your full card number, CVV, and expiry date. This info is then used by the scammer to make large international purchases immediately."},
+        ],
+        set5: [
+            {q:"You receive a message: 'Earn ₹500 for liking 3 Google Maps places.' You do it and they actually pay you ₹500! Now, they say: 'To get tasks that pay ₹5,000, you must first pay a ₹10,000 deposit into our pool.' Is this a real job?",o:["Do it","Task Scam","Ignore","Try it"],c:1,e_correct:"✅ CORRECT: Small first payments are bait for Task Scams.",e_wrong:"❌ WRONG: This leads to investment tasks later.",why_correct:"This is the 'honeymoon phase' of a task scam. They pay you real money once to make you believe the job is legit before they ask you for a 'VIP investment fee'.",why_wrong:"While the first ₹500 might be real, the goal is to lure you into a 'premium task' where you must pay ₹10,000 to participate. That is when they disappear with your money."},
+            {q:"An email from 'Netflix Support' says: 'Your payment was declined. Your subscription will end today unless you update your credit card here: netflix-security.info'. It looks identical to the real Netflix site. Your response?",o:["Update now","Check app","Call Bank","Reply HELP"],c:1,e_correct:"✅ CORRECT: Check the URL. It is not netflix.com.",e_wrong:"❌ WRONG: Fake domains look real at first glance.",why_correct:"Phishing emails use 'typosquatting'—registering domains that look like the original (like .info or .security). Always check your account status directly on the official app.",why_wrong:"The 'Update' button leads to a form that steals your credit card details and your Netflix password, which the hackers will then sell on the dark web for others to use."},
+            {q:"You see a sticker in a park that says: 'Free Gift Inside! Scan to Win.' It features a large QR code. You are curious about what you might win for free. Should you scan the code to find out?",o:["Scan it","Ignore it","Ask guard","Check QR"],c:1,e_correct:"✅ CORRECT: QR codes in public can lead to malware.",e_wrong:"❌ WRONG: Unknown QRs can trigger Auto-Pay.",why_correct:"'Quishing' (QR Phishing) involves placing malicious codes in public places. They can trigger automatic downloads of spyware or open malicious websites that steal your cookies.",why_wrong:"Scanning a random QR code is dangerous because you cannot see the destination URL until it's too late. It could potentially initiate a hidden UPI payment request on your phone."},
+            {q:"A caller says: 'I am an officer from IRDAI. Your old insurance policy has a ₹2 Lakh unclaimed bonus. To release it, you must pay a 10% processing fee of ₹20,000 to our department account via UPI.' Is this a valid government procedure?",o:["Claim it","Scam - Block","Call agent","Share ID"],c:1,e_correct:"✅ CORRECT: Regulators never call individuals.",e_wrong:"❌ WRONG: This is an 'Unclaimed Bonus' trap.",why_correct:"Government regulatory bodies like IRDAI or RBI never deal with individual policy bonuses or bank accounts. They are oversight bodies, not customer service centers.",why_wrong:"The scammer will tell you that to 'release' the ₹2 Lakh, you must pay a 10% 'tax' or 'security deposit'. Once you pay, they will continue to invent more fees until you stop."},
+            {q:"You match with a very attractive person on a dating app. After 10 minutes of chatting, they ask to have a 'private' nude video call. During the call, they suddenly hang up and send you a recording of yourself. What is this?",o:["Call them","Sextortion Trap","Block them","Ask Photo"],c:1,e_correct:"✅ CORRECT: This is a setup to record and blackmail you.",e_wrong:"❌ WRONG: They record you to demand money later.",why_correct:"This is a 'Sextortion' trap. The person on the other side is often a professional scammer using a pre-recorded video. They will record you and then threaten to leak the clip.",why_wrong:"The moment the call ends, they will send you a screenshot of your video and your social media follower list. They will demand large sums of money to delete the video."},
+            {q:"An SMS from a 10-digit number warns: 'Dear Customer, your SIM card will be deactivated in 24 hours. To complete your e-KYC and keep your number active, please call our executive at 9800012345 immediately.' Your action?",o:["Call now","Ignore/Report","Visit Store","Reply NO"],c:1,e_correct:"✅ CORRECT: Telecoms don't use private 10-digit numbers.",e_wrong:"❌ WRONG: Calling leads to a SIM Swap trap.",why_correct:"Official telecom alerts always come from short-code IDs (like VM-Airtel). They never ask you to call a private mobile number for KYC or service updates.",why_wrong:"If you call, the scammer will pose as an agent and trick you into sharing your SIM details or Porting code, allowing them to take over your phone number and bank accounts."},
+            {q:"A WhatsApp message claims you can: 'Earn ₹300 per day by renting your phone's unused cloud storage space to us. Just install this light app and stay online.' It sounds like a great way to earn passive income. Is it safe?",o:["Rent it","Scam - Block","Ask price","Try 1 day"],c:1,e_correct:"✅ CORRECT: This installs a botnet on your phone.",e_wrong:"❌ WRONG: No legit app pays you just to be online.",why_correct:"Legitimate cloud companies like Google or Amazon have their own massive data centers. They don't need to 'rent' storage from an individual's mobile phone.",why_wrong:"The app you install is actually a 'Botnet'. It uses your phone to launch cyber attacks on others or mine cryptocurrency, which will destroy your battery and put you in legal trouble."},
+            {q:"A YouTube video titled 'Unlimited GPay Rewards Trick 2024' shows a user getting ₹5,000 back. The description says: 'Download this secret script and paste your UPI ID to activate the hack.' Many comments say it works. Do you try it?",o:["Click link","Report Video","Try trick","Ask friend"],c:1,e_correct:"✅ CORRECT: Free money tricks lead to malware.",e_wrong:"❌ WRONG: These videos use fake UI to trick you.",why_correct:"Official rewards are generated by Google's secure servers and issued only within the verified GPay app. No external 'trick' or 'script' can bypass their security system.",why_wrong:"The 'secret link' usually leads to a malicious website that attempts to install an 'overlay' app. This app sits on top of your real bank apps and steals your login credentials."},
+            {q:"You find a Telegram channel selling 'Leaked Exam Papers' for the upcoming board exams. The admin says for ₹2,000, he will send the PDF 2 hours before the exam. He has 50,000 subscribers and daily updates. Is it worth buying?",o:["Pay & Join","Scam - Block","Ask sample","Ask proof"],c:1,e_correct:"✅ CORRECT: Exam leaks on Telegram are fake.",e_wrong:"❌ WRONG: They block you once payment is made.",why_correct:"Telegram channels selling 'leaks' are 99% scams using old papers or edited documents. Trying to buy leaks is also a crime and can get you permanently banned from exams.",why_wrong:"Once you pay via UPI, the admin will block you immediately. Since you were trying to do something illegal, they know you are unlikely to report the fraud to the police."},
+            {q:"While browsing, a loud alarm sounds from your phone and a pop-up appears: 'Warning! 13 Viruses found on your Android! Battery and data are at risk. Click here to download CleanMaster and remove them now!' What should you do?",o:["Clean now","Close Tab","Scan phone","Update OS"],c:1,e_correct:"✅ CORRECT: Websites cannot scan your phone for viruses.",e_wrong:"❌ WRONG: Clicking clean installs the virus.",why_correct:"This is 'Scareware'. Browsers are isolated from your system and cannot know if you have viruses. Only a locally installed, verified antivirus app can perform a real scan.",why_wrong:"The 'Clean' button is a disguised download link. By clicking it, you are giving the website permission to download and install actual malicious software onto your device."},
+        ]
+    };
+
+    let currentSet = "";
+    let currentQuestion = 0;
+    let score = 0;
+    let answered = false;
+    let timeLeft = 300; // INCREASED TO 5 MINUTES (300 SECONDS)
+    let timerId = null;
+    let currentOptions = [];
+
+    function shuffleOptions(questionObj) {
+        let options = questionObj.o.map((text, index) => ({ text, isCorrect: index === questionObj.c }));
+        for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+        }
+        return options;
+    }
+
+    function startRandomSet() {
+        const sets = Object.keys(quizData);
+        currentSet = sets[Math.floor(Math.random() * sets.length)];
+        currentQuestion = 0;
+        score = 0;
+        document.getElementById('resultArea').classList.add('hidden');
+        document.getElementById('quizArea').classList.remove('hidden');
+        startTimer();
+        loadQuestion();
+    }
+
+    function startTimer() {
+        clearInterval(timerId);
+        timeLeft = 300; // TIMER START VALUE
+        const display = document.getElementById('timerDisplay');
+        display.classList.remove('hidden');
+        timerId = setInterval(() => {
+            timeLeft--;
+            let mins = Math.floor(timeLeft / 60);
+            let secs = timeLeft % 60;
+            display.textContent = `Time Left: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (timeLeft <= 30) display.classList.add('timer-warning');
+            else display.classList.remove('timer-warning');
+            if (timeLeft <= 0) { clearInterval(timerId); showResults("TIME EXPIRED!"); }
+        }, 1000);
+    }
+
+    function loadQuestion() {
+        const questions = quizData[currentSet];
+        if (currentQuestion >= questions.length) {
+            clearInterval(timerId);
+            return showResults();
+        }
+        const q = questions[currentQuestion];
+        currentOptions = shuffleOptions(q);
+
+        document.getElementById('quizArea').innerHTML = `
+            <div class="question-header">
+                <div class="question-number">Question ${currentQuestion + 1}/10</div>
+            </div>
+            <div class="question-text">${q.q.replace(/\n/g, '<br>')}</div>
+            <div class="options" id="options"></div>
+            <div id="feedback" class="feedback hidden"></div>
+            <button class="btn" id="nextBtn" disabled>👆 Select Answer</button>
+        `;
+
+        const optionsContainer = document.getElementById('options');
+        currentOptions.forEach((opt, index) => {
+            const div = document.createElement('div');
+            div.className = 'option';
+            div.innerHTML = `<strong>${String.fromCharCode(65 + index)}.</strong> ${opt.text}`;
+            div.onclick = () => handleAnswer(index, q);
+            optionsContainer.appendChild(div);
+        });
+        answered = false;
+    }
+
+    function handleAnswer(selectedIndex, q) {
+        if (answered) return;
+        answered = true;
+        const domOptions = document.querySelectorAll('.option');
+        const selectedOpt = currentOptions[selectedIndex];
+
+        domOptions.forEach((div, idx) => {
+            if (currentOptions[idx].isCorrect) div.classList.add('correct-choice');
+            else if (idx === selectedIndex) div.classList.add('wrong-choice');
+        });
+
+        const feedback = document.getElementById('feedback');
+        if (selectedOpt.isCorrect) {
+            score++;
+            feedback.innerHTML = `<strong>${q.e_correct}</strong><br><br>${q.why_correct}`;
+            feedback.className = 'feedback correct';
+        } else {
+            feedback.innerHTML = `<strong>${q.e_wrong}</strong><br><br>${q.why_wrong}`;
+            feedback.className = 'feedback incorrect';
+        }
+        feedback.classList.remove('hidden');
+        const nextBtn = document.getElementById('nextBtn');
+        nextBtn.disabled = false;
+        nextBtn.textContent = 'NEXT QUESTION ⚡';
+        nextBtn.onclick = () => { currentQuestion++; loadQuestion(); };
+    }
+
+    function showResults(reason = "") {
+        document.getElementById('timerDisplay').classList.add('hidden');
+        document.getElementById('quizArea').classList.add('hidden');
+        const res = document.getElementById('resultArea');
+        res.classList.remove('hidden');
+        res.innerHTML = `
+            ${reason ? '<h2 style="color:#dc3545; text-align:center;">'+reason+'</h2>' : ''}
+            <div class="score">${score}/10</div>
+            <div class="congrats-message">
+                Congratulations! You have successfully completed the fraud detection test. Remember- if something feels urgent or too good to be true, it is usually a SCAM!
+            </div>
+            <div class="golden-rule">
+                💎 THE GOLDEN RULE:<br>
+                Never scan a QR code to "receive" money, never share your screen with a stranger, and never believe a "Digital Arrest" threat over video call.
+            </div>
+            <div class="helpline-footer">
+                When the digital world feels like a storm, dial 1930 to keep your peace of mind and your bank balance safe.
+            </div>
+            <button class="btn" onclick="startRandomSet()">🚀 Try Next Random Quiz</button>
+        `;
+    }
+
+    function init() {
+        document.getElementById('quizArea').innerHTML = `
+            <div style="text-align:center;">
+                <p style="font-size:1.2em; margin-bottom:20px;">5 Sets. 50 Challenges. 5 Minutes. Are you fraud-proof?</p>
+                <button class="btn" onclick="startRandomSet()">🚀 Start Quiz</button>
+            </div>
+        `;
+    }
+    init();
+</script>
+</body>
+</html>
